@@ -1,10 +1,9 @@
-from __future__ import annotations
-
 from datetime import date, datetime
 from enum import Enum
-from typing import List, Optional
+from typing import Optional
 
 from sqlalchemy import Column, LargeBinary
+from sqlalchemy.orm import Mapped
 from sqlmodel import Field, Relationship, SQLModel
 
 
@@ -50,7 +49,7 @@ class User(SQLModel, table=True):
     site: Optional[str] = None
     role: Role = Field(default=Role.VIEWER)
 
-    assignments: List["Assignment"] = Relationship(back_populates="assignee")
+    assignments: Mapped[list["Assignment"]] = Relationship(back_populates="assignee")
 
 
 class Supplier(SQLModel, table=True):
@@ -61,8 +60,8 @@ class Supplier(SQLModel, table=True):
     phone: Optional[str] = None
     address: Optional[str] = None
 
-    quotes: List["Quote"] = Relationship(back_populates="supplier")
-    orders: List["Order"] = Relationship(back_populates="supplier")
+    quotes: Mapped[list["Quote"]] = Relationship(back_populates="supplier")
+    orders: Mapped[list["Order"]] = Relationship(back_populates="supplier")
 
 
 class StoredFile(SQLModel, table=True):
@@ -88,7 +87,7 @@ class Quote(SQLModel, table=True):
     requested_by_user_id: Optional[int] = Field(default=None, foreign_key="user.id")
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
-    supplier: Supplier = Relationship(back_populates="quotes")
+    supplier: Mapped[Supplier] = Relationship(back_populates="quotes")
 
 
 class Order(SQLModel, table=True):
@@ -100,10 +99,10 @@ class Order(SQLModel, table=True):
     ordered_at: Optional[datetime] = None
     expected_delivery_at: Optional[date] = None
 
-    supplier: Supplier = Relationship(back_populates="orders")
-    quote: Optional[Quote] = Relationship()
-    lines: List["OrderLine"] = Relationship(back_populates="order")
-    deliveries: List["Delivery"] = Relationship(back_populates="order")
+    supplier: Mapped[Supplier] = Relationship(back_populates="orders")
+    quote: Mapped[Optional[Quote]] = Relationship()
+    lines: Mapped[list["OrderLine"]] = Relationship(back_populates="order")
+    deliveries: Mapped[list["Delivery"]] = Relationship(back_populates="order")
 
 
 class OrderLine(SQLModel, table=True):
@@ -114,8 +113,8 @@ class OrderLine(SQLModel, table=True):
     unit_price: float
     tax_rate: float = Field(default=0.2)
 
-    order: Order = Relationship(back_populates="lines")
-    item: "Item" = Relationship(back_populates="order_lines")
+    order: Mapped[Order] = Relationship(back_populates="lines")
+    item: Mapped["Item"] = Relationship(back_populates="order_lines")
 
 
 class Delivery(SQLModel, table=True):
@@ -124,8 +123,8 @@ class Delivery(SQLModel, table=True):
     delivery_note_ref: Optional[str] = None
     delivered_at: date = Field(default_factory=date.today)
 
-    order: Order = Relationship(back_populates="deliveries")
-    serials: List["Serial"] = Relationship(back_populates="delivery")
+    order: Mapped[Order] = Relationship(back_populates="deliveries")
+    serials: Mapped[list["Serial"]] = Relationship(back_populates="delivery")
 
 
 class Item(SQLModel, table=True):
@@ -139,8 +138,8 @@ class Item(SQLModel, table=True):
     low_stock_threshold: Optional[int] = Field(default=None)
     notes: Optional[str] = None
 
-    order_lines: List[OrderLine] = Relationship(back_populates="item")
-    serials: List["Serial"] = Relationship(back_populates="item")
+    order_lines: Mapped[list[OrderLine]] = Relationship(back_populates="item")
+    serials: Mapped[list["Serial"]] = Relationship(back_populates="item")
 
 
 class Serial(SQLModel, table=True):
@@ -156,10 +155,10 @@ class Serial(SQLModel, table=True):
     status: SerialStatus = Field(default=SerialStatus.IN_STOCK)
     current_assignee_user_id: Optional[int] = Field(default=None, foreign_key="user.id")
 
-    item: Item = Relationship(back_populates="serials")
-    supplier: Optional[Supplier] = Relationship()
-    delivery: Optional[Delivery] = Relationship(back_populates="serials")
-    assignments: List["Assignment"] = Relationship(back_populates="serial")
+    item: Mapped[Item] = Relationship(back_populates="serials")
+    supplier: Mapped[Optional[Supplier]] = Relationship()
+    delivery: Mapped[Optional[Delivery]] = Relationship(back_populates="serials")
+    assignments: Mapped[list["Assignment"]] = Relationship(back_populates="serial")
 
 
 class Assignment(SQLModel, table=True):
@@ -172,8 +171,8 @@ class Assignment(SQLModel, table=True):
     document_file_id: Optional[int] = Field(default=None, foreign_key="files.id")
     notes: Optional[str] = None
 
-    serial: Serial = Relationship(back_populates="assignments")
-    assignee: User = Relationship(back_populates="assignments")
+    serial: Mapped[Serial] = Relationship(back_populates="assignments")
+    assignee: Mapped[User] = Relationship(back_populates="assignments")
 
 
 class ActivityLog(SQLModel, table=True):
