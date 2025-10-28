@@ -24,6 +24,11 @@ def init_db() -> None:
 
 
 @contextmanager
+def session_scope() -> Iterator[Session]:
+    with Session(engine) as session:
+        yield session
+
+
 def get_session() -> Iterator[Session]:
     with Session(engine) as session:
         yield session

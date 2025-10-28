@@ -6,7 +6,7 @@ from collections.abc import Iterator
 import pytest
 from fastapi.testclient import TestClient
 
-from app.database import get_session, init_db
+from app.database import get_session, init_db, session_scope
 from app.main import app
 from app.seed import create_demo_data
 
@@ -16,7 +16,7 @@ def _cleanup_database() -> Iterator[None]:
     if os.path.exists("stocky.db"):
         os.remove("stocky.db")
     init_db()
-    with get_session() as session:
+    with session_scope() as session:
         create_demo_data(session)
     yield
     if os.path.exists("stocky.db"):

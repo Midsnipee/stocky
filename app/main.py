@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from sqlmodel import Session, func, select
 
-from .database import get_session, init_db
+from .database import get_session, init_db, session_scope
 from .dependencies import get_current_role, require_roles
 from .models import (
     ActivityEntity,
@@ -61,7 +61,7 @@ app.add_middleware(
 @app.on_event("startup")
 def on_startup() -> None:
     init_db()
-    with get_session() as session:
+    with session_scope() as session:
         create_demo_data(session)
 
 
@@ -129,17 +129,22 @@ def download_file(
     return Response(content=stored.content, media_type=stored.mime, headers=headers)
 
 
-@app.delete("/files/{file_id}", status_code=status.HTTP_204_NO_CONTENT)
+@app.delete(
+    "/files/{file_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+)
 def delete_file(
     file_id: int,
     session: Session = Depends(get_session),
     role: Role = Depends(require_roles(Role.ADMIN, Role.BUYER, Role.STOREKEEPER)),
-) -> None:
+) -> Response:
     stored = session.get(StoredFile, file_id)
     if stored is None:
         raise HTTPException(status_code=404, detail="Fichier introuvable")
     session.delete(stored)
     session.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 ENTITY_MODEL_MAP = {
@@ -160,8 +165,15 @@ def _require_entity(session: Session, entity_type: str, entity_id: int) -> None:
 
 
 def _file_to_schema(stored_file: StoredFile) -> FileRead:
-    return FileRead.from_orm(stored_file).copy(
-        update={"download_url": f"/files/{stored_file.id}/download"}
+    assert stored_file.id is not None
+    return FileRead(
+        id=stored_file.id,
+        entity_type=stored_file.entity_type,
+        entity_id=stored_file.entity_id,
+        filename=stored_file.filename,
+        mime=stored_file.mime,
+        size=stored_file.size,
+        download_url=f"/files/{stored_file.id}/download",
     )
 
 
@@ -173,6 +185,21 @@ def _files_for_entity(session: Session, entity_type: str, entity_id: int) -> Lis
         .order_by(StoredFile.created_at.desc())
     ).all()
     return [_file_to_schema(row) for row in rows]
+
+
+def _item_to_schema(item: Item, stock: int) -> ItemRead:
+    assert item.id is not None
+    return ItemRead(
+        id=item.id,
+        name=item.name,
+        category=item.category,
+        internal_ref=item.internal_ref,
+        default_unit_price=item.default_unit_price,
+        site=item.site,
+        low_stock_threshold=item.low_stock_threshold,
+        notes=item.notes,
+        stock=stock,
+    )
 
 
 def _calculate_stock(session: Session, items: Iterable[Item]) -> Dict[int, int]:
@@ -199,7 +226,7 @@ def create_item(
     session.commit()
     session.refresh(item)
     stock = _calculate_stock(session, [item]).get(item.id, 0)
-    return ItemRead.from_orm(item).copy(update={"stock": stock})
+    return _item_to_schema(item, stock)
 
 
 @app.get("/items", response_model=List[ItemRead])
@@ -223,7 +250,10 @@ def list_items(
         query = query.where(func.lower(Item.name).like(like) | func.lower(Item.internal_ref).like(like))
     items = session.exec(query.order_by(Item.name)).all()
     stock_map = _calculate_stock(session, items)
-    return [ItemRead.from_orm(item).copy(update={"stock": stock_map.get(item.id, 0)}) for item in items]
+    return [
+        _item_to_schema(item, stock_map.get(item.id, 0))
+        for item in items
+    ]
 
 
 @app.get("/serials", response_model=List[SerialRead])
