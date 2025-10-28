@@ -4,9 +4,8 @@ import json
 from datetime import date, datetime, timedelta
 from typing import Dict, Iterable, List
 
-from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, UploadFile, status
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, Response, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
 from sqlmodel import Session, func, select
 
 from .database import get_session, init_db
@@ -138,12 +137,13 @@ def delete_file(
     file_id: int,
     session: Session = Depends(get_session),
     role: Role = Depends(require_roles(Role.ADMIN, Role.BUYER, Role.STOREKEEPER)),
-) -> None:
+) -> Response:
     stored = session.get(StoredFile, file_id)
     if stored is None:
         raise HTTPException(status_code=404, detail="Fichier introuvable")
     session.delete(stored)
     session.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 ENTITY_MODEL_MAP = {
