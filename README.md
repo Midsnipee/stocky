@@ -56,3 +56,19 @@ Les rapports sont disponibles via :
 ```bash
 pytest
 ```
+
+## Interface utilisateur React
+
+Une interface moderne en React/JS est disponible dans le dossier `frontend`.
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+L'application démarre sur `http://localhost:5173` avec :
+
+- un dashboard modulaire regroupant les widgets demandés ;
+- les vues Commandes, Matériels, Détail matériel et Attributions avec filtres, recherche et actions rapides ;
+- une base de données locale simulée (données de démonstration stockées côté client) respectant le modèle fourni.
