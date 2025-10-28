@@ -67,6 +67,12 @@ npm install
 npm run dev
 ```
 
+### Accéder au dashboard
+
+1. Démarrez l'API FastAPI (voir section "Démarrage rapide").
+2. Lancez le serveur de développement React avec `npm run dev`.
+3. Ouvrez le navigateur sur `http://localhost:5173` pour afficher le dashboard.
+
 L'application démarre sur `http://localhost:5173` avec :
 
 - un dashboard modulaire regroupant les widgets demandés ;
